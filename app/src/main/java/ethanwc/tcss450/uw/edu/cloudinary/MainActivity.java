@@ -20,8 +20,9 @@ import java.util.Map;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
-    private Button uploadBtn;
+    private Button videoBtn, imageBtn;
     private ProgressBar progressBar;
+    private int SELECT_IMAGE = 1;
     private int SELECT_VIDEO = 2;
     private ImageView img1, img2, img3;
 
@@ -34,22 +35,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         img2 = findViewById(R.id.img2);
         img3 = findViewById(R.id.img3);
         progressBar = findViewById(R.id.progress_bar);
-        uploadBtn = findViewById(R.id.uploadBtn);
+        videoBtn = findViewById(R.id.video);
+        imageBtn = findViewById(R.id.img);
 
         MediaManager.init(this);
-        uploadBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                pickVideoFromGallery();
 
-            }
-            private void pickVideoFromGallery() {
-                Intent GalleryIntent = new Intent();
-                GalleryIntent.setType("video/*");
-                GalleryIntent.setAction(Intent.ACTION_GET_CONTENT);
-                startActivityForResult(Intent.createChooser(GalleryIntent, "select video"), SELECT_VIDEO);
-            }
-        });
+        imageBtn.setOnClickListener(this::pickImageFromGallery);
+        videoBtn.setOnClickListener(this::pickVideoFromGallery);
+
     }
 
     @Override
@@ -79,7 +72,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                             Toast.makeText(MainActivity.this, "Uploaded Succesfully", Toast.LENGTH_SHORT).show();
                             progressBar.setVisibility(View.GONE);
-                            uploadBtn.setVisibility(View.INVISIBLE);
+                            videoBtn.setVisibility(View.INVISIBLE);
 
                             String publicId = resultData.get("public_id").toString();
 
@@ -104,7 +97,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         public void onError(String requestId, ErrorInfo error) {
 
                             Toast.makeText(MainActivity.this, "Upload Error", Toast.LENGTH_SHORT).show();
-                            Log.v("ERROR!!", error.getDescription());
+                            Log.v("ERROR!!", " VIDEO " + error.getDescription());
                         }
 
                         @Override
@@ -113,7 +106,68 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         }
 
                     }).dispatch();
-        }else {
+        }
+
+        else if (requestCode == SELECT_IMAGE && resultCode == RESULT_OK) {
+
+            Uri selectedImage = data.getData();
+            MediaManager.get()
+                    .upload(selectedImage)
+                    .unsigned("u48dpnqx")
+                    .option("resource_type", "image")
+                    .callback(new UploadCallback() {
+                        @Override
+                        public void onStart(String requestId) {
+                            progressBar.setVisibility(View.VISIBLE);
+                            Toast.makeText(MainActivity.this, "Upload Started...", Toast.LENGTH_SHORT).show();
+                        }
+
+                        @Override
+                        public void onProgress(String requestId, long bytes, long totalBytes) {
+
+                        }
+
+                        @Override
+                        public void onSuccess(String requestId, Map resultData) {
+
+                            Toast.makeText(MainActivity.this, "Uploaded Succesfully", Toast.LENGTH_SHORT).show();
+                            progressBar.setVisibility(View.GONE);
+                            videoBtn.setVisibility(View.INVISIBLE);
+
+                            String publicId = resultData.get("public_id").toString();
+
+                            String firstImgUrl = MediaManager.get().url().transformation(new Transformation().startOffset("12")
+                                    .border("5px_solid_black").border("5px_solid_black")).resourceType("video")
+                                    .generate(publicId+".jpg");
+                            Picasso.get().load(firstImgUrl).into(img1);
+
+                            String secondImgUrl = MediaManager.get().url().transformation(new Transformation().startOffset("4")
+                                    .width(200).height(150).radius(20).effect("saturation:50").border("5px_solid_black"))
+                                    .resourceType("video").generate(publicId+".jpg");
+                            Picasso.get().load(secondImgUrl).into(img2);
+
+                            String thirdImgUrl = MediaManager.get().url().transformation(new Transformation().startOffset("20")
+                                    .width(200).height(150).radius(20).effect("grayscale").border("5px_solid_black").crop("crop"))
+                                    .resourceType("video").generate(publicId+".jpg");
+                            Picasso.get().load(thirdImgUrl).into(img3);
+
+                        }
+
+                        @Override
+                        public void onError(String requestId, ErrorInfo error) {
+
+                            Toast.makeText(MainActivity.this, "Upload Error", Toast.LENGTH_SHORT).show();
+                            Log.v("ERROR!!"," IMAGE: " + error.getDescription());
+                        }
+
+                        @Override
+                        public void onReschedule(String requestId, ErrorInfo error) {
+
+                        }
+
+                    }).dispatch();
+        }
+        else {
 
             Toast.makeText(MainActivity.this, "Can't Upload", Toast.LENGTH_SHORT).show();
         }
@@ -122,5 +176,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     public void onClick(View view) {
 
+    }
+
+    private void pickImageFromGallery(View view) {
+        Intent GalleryIntent = new Intent();
+        GalleryIntent.setType("image/*");
+        GalleryIntent.setAction(Intent.ACTION_GET_CONTENT);
+        startActivityForResult(Intent.createChooser(GalleryIntent, "select image"), SELECT_IMAGE);
+    }
+
+    private void pickVideoFromGallery(View view) {
+        Intent GalleryIntent = new Intent();
+        GalleryIntent.setType("video/*");
+        GalleryIntent.setAction(Intent.ACTION_GET_CONTENT);
+        startActivityForResult(Intent.createChooser(GalleryIntent, "select video"), SELECT_VIDEO);
     }
 }
